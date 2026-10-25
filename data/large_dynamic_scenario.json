@@ -1,0 +1,45 @@
+{
+    "title": "Expanded College Project Scenario (7 Processes, 4 Resources)",
+    "description": "Multi-resource scenario demonstrating scalability across 7 processes and 4 resources.",
+    "n": 7,
+    "m": 4,
+    "process_names": [
+        "P0",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+    ],
+    "resource_names": [
+        "CPU",
+        "Memory",
+        "Disk",
+        "Network"
+    ],
+    "total": [
+        16,
+        14,
+        12,
+        10
+    ],
+    "allocation": [
+        [1, 2, 1, 0],
+        [2, 0, 1, 1],
+        [3, 1, 2, 1],
+        [2, 1, 1, 1],
+        [1, 1, 0, 1],
+        [2, 2, 1, 0],
+        [1, 0, 2, 1]
+    ],
+    "maximum": [
+        [3, 4, 2, 1],
+        [4, 2, 2, 2],
+        [5, 3, 4, 2],
+        [3, 2, 2, 2],
+        [2, 3, 1, 2],
+        [4, 3, 2, 1],
+        [3, 1, 3, 2]
+    ]
+}

@@ -1,0 +1,8 @@
+# Banker's Algorithm Simulator — Dependencies
+# ---------------------------------------------
+# This application is deliberately designed with ZERO mandatory external dependencies.
+# It runs out-of-the-box using the standard Python 3 runtime and standard library:
+# - tkinter and ttk (standard GUI toolkit included with Python)
+# - json, csv, dataclasses, typing, unittest (Python 3 standard library)
+#
+# No pip install is required to run the application or tests!

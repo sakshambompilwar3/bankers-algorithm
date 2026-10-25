@@ -1,0 +1,77 @@
+{
+    "title": "Classic Textbook Safe Scenario (5 Processes, 3 Resources)",
+    "description": "Standard Silberschatz OS textbook example demonstrating a known safe state.",
+    "n": 5,
+    "m": 3,
+    "process_names": [
+        "P0",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+    ],
+    "resource_names": [
+        "A",
+        "B",
+        "C"
+    ],
+    "total": [
+        10,
+        5,
+        7
+    ],
+    "allocation": [
+        [
+            0,
+            1,
+            0
+        ],
+        [
+            2,
+            0,
+            0
+        ],
+        [
+            3,
+            0,
+            2
+        ],
+        [
+            2,
+            1,
+            1
+        ],
+        [
+            0,
+            0,
+            2
+        ]
+    ],
+    "maximum": [
+        [
+            7,
+            5,
+            3
+        ],
+        [
+            3,
+            2,
+            2
+        ],
+        [
+            9,
+            0,
+            2
+        ],
+        [
+            2,
+            2,
+            2
+        ],
+        [
+            4,
+            3,
+            3
+        ]
+    ]
+}

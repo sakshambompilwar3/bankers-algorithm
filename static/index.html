@@ -1,0 +1,3163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banker's Algorithm Simulator — Mission Control OS</title>
+<style>
+/* =====================================================================
+   MISSION CONTROL DESIGN SYSTEM — 100% STANDALONE OFFLINE CSS
+   ===================================================================== */
+:root {
+  --bg-space: #030712;
+  --bg-surface: #070e22;
+  --bg-card: rgba(10, 20, 44, 0.72);
+  --bg-card-hover: rgba(18, 34, 72, 0.82);
+  --bg-input: rgba(3, 10, 28, 0.85);
+  --border-subtle: rgba(56, 189, 248, 0.15);
+  --border-glow: rgba(56, 189, 248, 0.45);
+  --border-active: #38bdf8;
+  
+  --cyan-glow: #00f2fe;
+  --cyan-bright: #38bdf8;
+  --blue-electric: #3b82f6;
+  --blue-deep: #1d4ed8;
+  --purple-laser: #8b5cf6;
+  
+  --status-safe: #10b981;
+  --status-safe-glow: rgba(16, 185, 129, 0.35);
+  --status-safe-bg: rgba(16, 185, 129, 0.12);
+  
+  --status-wait: #f59e0b;
+  --status-wait-glow: rgba(245, 158, 11, 0.35);
+  --status-wait-bg: rgba(245, 158, 11, 0.12);
+  
+  --status-blocked: #ef4444;
+  --status-blocked-glow: rgba(239, 68, 68, 0.4);
+  --status-blocked-bg: rgba(239, 68, 68, 0.14);
+
+  --text-main: #f8fafc;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
+  
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-space);
+  color: var(--text-main);
+  overflow-x: hidden;
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Background canvas particles */
+#bgCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Cosmic grid & radial glows */
+.cosmic-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 600px at 15% 20%, rgba(59, 130, 246, 0.08), transparent 70%),
+    radial-gradient(circle 700px at 85% 80%, rgba(139, 92, 246, 0.07), transparent 70%),
+    radial-gradient(circle 500px at 50% 40%, rgba(0, 242, 254, 0.05), transparent 70%);
+  z-index: 0;
+}
+
+/* App container */
+.app-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* =====================================================================
+   HEADER & NAVIGATION
+   ===================================================================== */
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 28px;
+  background: rgba(7, 14, 34, 0.85);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.brand-orb {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--cyan-bright), var(--blue-deep));
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  animation: orbPulse 4s ease-in-out infinite;
+}
+
+@keyframes orbPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(0, 242, 254, 0.4); transform: scale(1); }
+  50% { box-shadow: 0 0 28px rgba(0, 242, 254, 0.7); transform: scale(1.04); }
+}
+
+.brand-text h1 {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  background: linear-gradient(120deg, #fff 10%, #38bdf8 60%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-text p {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.nav-modes {
+  display: flex;
+  gap: 6px;
+  background: rgba(3, 10, 28, 0.6);
+  padding: 5px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.nav-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tab-btn.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(59, 130, 246, 0.35));
+  border: 1px solid var(--border-glow);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.header-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* =====================================================================
+   BUTTONS & COMMON CONTROLS
+   ===================================================================== */
+.btn {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0369a1, #1d4ed8);
+  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.55);
+  border-color: var(--cyan-bright);
+}
+
+.btn-glowing {
+  background: linear-gradient(135deg, #00f2fe, #4facfe);
+  color: #030712;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 30px rgba(0, 242, 254, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: none;
+  animation: launchGlow 3s ease-in-out infinite alternate;
+}
+@keyframes launchGlow {
+  0% { box-shadow: 0 0 25px rgba(0, 242, 254, 0.45); }
+  100% { box-shadow: 0 0 45px rgba(0, 242, 254, 0.8), 0 0 60px rgba(79, 172, 254, 0.4); }
+}
+.btn-glowing:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 50px rgba(0, 242, 254, 0.9);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim);
+  border-color: var(--border-subtle);
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  border-color: var(--border-glow);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.btn-danger:hover {
+  background: #ef4444;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.45);
+}
+
+.btn-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+.btn-success:hover {
+  background: #10b981;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.45);
+}
+
+.btn-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-circle:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: var(--cyan-bright);
+}
+
+/* =====================================================================
+   MAIN BODY & VIEWS CONTAINER
+   ===================================================================== */
+.main-view-wrap {
+  flex: 1;
+  padding: 24px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.view-section {
+  display: none;
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.view-section.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =====================================================================
+   STAGE 2: WIZARD UI
+   ===================================================================== */
+.wizard-progress-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wizard-steps-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 900px;
+}
+
+.step-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.step-bubble {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.step-node.active .step-bubble {
+  background: linear-gradient(135deg, var(--cyan-bright), var(--blue-deep));
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 0 16px rgba(0, 242, 254, 0.55);
+}
+.step-node.active .step-label { color: #fff; }
+
+.step-node.completed .step-bubble {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--status-safe);
+  color: var(--status-safe);
+}
+.step-node.completed .step-label { color: var(--text-dim); }
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+.step-connector.filled::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, var(--status-safe), var(--cyan-bright));
+}
+
+/* Wizard Screen Container */
+.wizard-screen {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 36px 40px;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
+.wizard-screen-header {
+  margin-bottom: 28px;
+}
+.wizard-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--cyan-bright);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  margin-bottom: 10px;
+}
+.wizard-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.wizard-subtitle {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* Stepper Card for Step 1 & 2 */
+.stepper-card-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  gap: 20px;
+}
+
+.giant-number-stepper {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.btn-stepper-big {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: #fff;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.btn-stepper-big:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: var(--cyan-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+}
+
+.giant-number-input {
+  width: 140px;
+  height: 90px;
+  background: var(--bg-input);
+  border: 2px solid var(--border-glow);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-mono);
+  font-size: 48px;
+  font-weight: 800;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.2), inset 0 2px 6px rgba(0, 0, 0, 0.6);
+  outline: none;
+  transition: all 0.3s;
+}
+.giant-number-input:focus {
+  border-color: var(--cyan-bright);
+  box-shadow: 0 0 45px rgba(56, 189, 248, 0.45);
+}
+
+.chip-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.chip-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.chip:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: var(--cyan-bright);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Wizard navigation footer */
+.wizard-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Step 3: Resources Grid */
+.resources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.resource-config-card {
+  background: rgba(7, 14, 34, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+.resource-config-card:focus-within, .resource-config-card:hover {
+  border-color: var(--cyan-bright);
+  box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15);
+}
+
+.res-index-pill {
+  position: absolute;
+  top: 14px; right: 14px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--cyan-bright);
+  background: rgba(56, 189, 248, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.res-field-group {
+  margin-top: 12px;
+}
+.res-field-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.res-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+}
+.res-input:focus { border-color: var(--cyan-bright); }
+.res-input-number {
+  font-family: var(--font-mono);
+  font-size: 16px;
+}
+
+/* Step 4: Process Cards & Real-Time Matrix Input */
+.live-available-strip {
+  background: linear-gradient(135deg, rgba(3, 10, 28, 0.9), rgba(7, 14, 34, 0.9));
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.strip-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strip-avail-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.avail-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+.avail-pill.danger {
+  border-color: var(--status-blocked);
+  color: var(--status-blocked);
+  background: var(--status-blocked-bg);
+  box-shadow: 0 0 12px var(--status-blocked-glow);
+}
+.avail-pill.safe {
+  border-color: var(--cyan-bright);
+  color: var(--cyan-bright);
+}
+
+/* Processes scrollable list */
+.processes-scroll-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-bottom: 20px;
+}
+
+.process-setup-card {
+  background: rgba(7, 14, 34, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+.process-setup-card:hover {
+  border-color: var(--border-glow);
+}
+
+.proc-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.proc-meta-inputs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.proc-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.proc-icon-badge:hover { transform: scale(1.08); }
+
+.proc-name-input {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--bg-input);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 14px;
+  outline: none;
+  width: 200px;
+}
+.proc-name-input:focus { border-color: var(--cyan-bright); }
+
+.proc-color-picker {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: transparent;
+}
+
+.proc-vectors-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 6px;
+}
+
+.proc-vectors-table th {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 4px;
+}
+
+.proc-vectors-table td {
+  text-align: center;
+}
+
+.vec-type-title {
+  text-align: left !important;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  width: 120px;
+}
+
+.cell-num-input {
+  width: 58px;
+  padding: 6px;
+  background: var(--bg-input);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s;
+}
+.cell-num-input:focus {
+  border-color: var(--cyan-bright);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+.cell-num-computed {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--cyan-bright);
+  padding: 6px;
+}
+.cell-num-computed.error { color: var(--status-blocked); }
+
+/* Step 5: Review & Presets */
+.review-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.review-card {
+  background: rgba(3, 10, 28, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+.review-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.review-card-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.review-matrix-preview {
+  background: rgba(3, 10, 28, 0.85);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.review-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.review-table th, .review-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+}
+.review-table th {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 700;
+  color: var(--cyan-bright);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.review-table td.proc-name-col {
+  text-align: left;
+  font-weight: 700;
+  color: #fff;
+}
+
+.preset-banner {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px dashed var(--border-glow);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* =====================================================================
+   STAGE 3: LIVE SIMULATION SHOWPIECE
+   ===================================================================== */
+.sim-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+/* Resource tanks */
+.resource-tanks-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+}
+
+.resource-tank-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 16px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s ease;
+}
+
+.tank-gauge-wrap {
+  width: 90px;
+  height: 120px;
+  border: 2px solid var(--border-glow);
+  border-radius: 18px;
+  background: rgba(3, 10, 28, 0.8);
+  position: relative;
+  overflow: hidden;
+  margin: 12px 0;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 0 15px rgba(56, 189, 248, 0.2);
+}
+
+.tank-liquid {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(180deg, var(--cyan-bright) 0%, var(--blue-deep) 100%);
+  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 15px var(--cyan-bright);
+}
+.tank-liquid::before {
+  content: '';
+  position: absolute;
+  top: -4px; left: 0; right: 0;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.tank-res-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.tank-numbers {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cyan-bright);
+}
+.tank-numbers .total-tag {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Scheduler Board */
+.scheduler-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.scheduler-proc-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scheduler-proc-card.checking {
+  border-color: var(--cyan-bright);
+  box-shadow: 0 0 30px rgba(0, 242, 254, 0.45);
+  transform: translateY(-4px) scale(1.02);
+}
+
+.scheduler-proc-card.running {
+  border-color: var(--status-safe);
+  box-shadow: 0 0 30px var(--status-safe-glow);
+  transform: translateY(-4px) scale(1.02);
+}
+
+.scheduler-proc-card.finished {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.05);
+  opacity: 0.85;
+}
+
+.scheduler-proc-card.blocked {
+  border-color: var(--status-blocked);
+  box-shadow: 0 0 25px var(--status-blocked-glow);
+  animation: pulseBlocked 2s infinite;
+}
+@keyframes pulseBlocked {
+  0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); }
+}
+
+.proc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.proc-badge-tag {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+}
+.badge-waiting { background: var(--status-wait-bg); color: var(--status-wait); border: 1px solid var(--status-wait-glow); }
+.badge-checking { background: rgba(56, 189, 248, 0.15); color: var(--cyan-bright); border: 1px solid var(--border-glow); animation: badgePulse 1s infinite alternate; }
+.badge-running { background: var(--status-safe-bg); color: var(--status-safe); border: 1px solid var(--status-safe-glow); }
+.badge-finished { background: rgba(16, 185, 129, 0.2); color: var(--status-safe); border: 1px solid var(--status-safe); }
+.badge-blocked { background: var(--status-blocked-bg); color: var(--status-blocked); border: 1px solid var(--status-blocked-glow); }
+
+@keyframes badgePulse {
+  0% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.proc-vectors-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.mini-vec-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Scanner Card (Active checking details) */
+.active-scanner-card {
+  background: linear-gradient(135deg, rgba(7, 14, 34, 0.95), rgba(10, 20, 44, 0.95));
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: 0 0 35px rgba(56, 189, 248, 0.15);
+}
+
+.scanner-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.scanner-comparisons-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.cmp-pill {
+  background: rgba(3, 10, 28, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+.cmp-pill.pass {
+  border-color: var(--status-safe);
+  background: rgba(16, 185, 129, 0.08);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+.cmp-pill.fail {
+  border-color: var(--status-blocked);
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+/* Terminal log */
+.sim-terminal-log {
+  background: #020617;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #cbd5e1;
+  max-height: 180px;
+  overflow-y: auto;
+  line-height: 1.6;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+.log-line { display: flex; gap: 10px; margin-bottom: 4px; }
+.log-time { color: var(--text-muted); }
+.log-pass { color: var(--cyan-bright); }
+.log-success { color: var(--status-safe); }
+.log-warn { color: var(--status-wait); }
+.log-fail { color: var(--status-blocked); }
+
+/* Timeline Safe Sequence Builder */
+.safe-sequence-timeline {
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 24px;
+}
+.timeline-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.timeline-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 48px;
+}
+
+.timeline-chip {
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.25));
+  border: 1px solid var(--status-safe);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+  animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.5) rotate(-6deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.timeline-arrow {
+  color: var(--cyan-bright);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Control deck */
+.sim-control-deck {
+  background: rgba(7, 14, 34, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-lg);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.control-playback-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.speed-adjuster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.speed-slider {
+  -webkit-appearance: none;
+  width: 100px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+}
+.speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--cyan-bright);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--cyan-bright);
+}
+
+/* =====================================================================
+   STAGE 4: CALCULATIONS & TRACE VIEW
+   ===================================================================== */
+.calc-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.calc-formula-block {
+  background: rgba(3, 10, 28, 0.85);
+  border-left: 4px solid var(--cyan-bright);
+  border-radius: var(--radius-sm);
+  padding: 14px 20px;
+  margin: 16px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.trace-accordion-item {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  overflow: hidden;
+  background: rgba(3, 10, 28, 0.6);
+}
+.trace-header {
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+.trace-content {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* =====================================================================
+   STAGE 5: FINAL VERDICT VIEW
+   ===================================================================== */
+.verdict-hero {
+  border-radius: var(--radius-xl);
+  padding: 48px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+.verdict-hero.safe {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.1));
+  border: 2px solid var(--status-safe);
+  box-shadow: 0 0 60px rgba(16, 185, 129, 0.25);
+}
+.verdict-hero.unsafe {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(185, 28, 28, 0.1));
+  border: 2px solid var(--status-blocked);
+  box-shadow: 0 0 60px rgba(239, 68, 68, 0.25);
+}
+
+.verdict-title {
+  font-size: 32px;
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+.verdict-hero.safe .verdict-title { color: var(--status-safe); }
+.verdict-hero.unsafe .verdict-title { color: var(--status-blocked); }
+
+.verdict-desc {
+  font-size: 15px;
+  color: #e2e8f0;
+  max-width: 800px;
+  margin: 0 auto 24px;
+  line-height: 1.6;
+}
+
+.verdict-stuck-box {
+  background: rgba(3, 10, 28, 0.85);
+  border: 1px solid var(--status-blocked);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin: 20px auto 0;
+  max-width: 700px;
+  text-align: left;
+}
+
+/* =====================================================================
+   STAGE 6: RESOURCE REQUEST SIMULATOR
+   ===================================================================== */
+.req-sim-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  margin-bottom: 24px;
+}
+
+.phase-step-card {
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  background: rgba(3, 10, 28, 0.7);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+.phase-step-card.pass {
+  border-color: var(--status-safe);
+  background: rgba(16, 185, 129, 0.08);
+}
+.phase-step-card.fail {
+  border-color: var(--status-blocked);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* =====================================================================
+   RESPONSIVE
+   ===================================================================== */
+@media (max-width: 900px) {
+  .header-bar { flex-direction: column; gap: 12px; padding: 12px; }
+  .wizard-progress-card { flex-direction: column; gap: 12px; }
+  .wizard-screen { padding: 24px; }
+  .sim-control-deck { flex-direction: column; align-items: stretch; }
+  .control-playback-group { justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<div class="cosmic-layer"></div>
+
+<div class="app-container">
+
+  <!-- =====================================================================
+       HEADER
+       ===================================================================== -->
+  <header class="header-bar">
+    <div class="brand-group" onclick="showView('view-wizard')">
+      <div class="brand-orb">⚡</div>
+      <div class="brand-text">
+        <h1>Banker's Algorithm</h1>
+        <p>Mission Control OS — Deadlock Avoidance</p>
+      </div>
+    </div>
+
+    <nav class="nav-modes">
+      <button class="nav-tab-btn active" id="tabNavWizard" onclick="showView('view-wizard')">🧙 Setup Wizard</button>
+      <button class="nav-tab-btn" id="tabNavSim" onclick="showView('view-sim')">⚡ Live Simulation</button>
+      <button class="nav-tab-btn" id="tabNavCalc" onclick="showView('view-calc')">🧮 Calculations &amp; Trace</button>
+      <button class="nav-tab-btn" id="tabNavVerdict" onclick="showView('view-verdict')">🏆 Final Verdict</button>
+      <button class="nav-tab-btn" id="tabNavReq" onclick="showView('view-req')">⟐ Request Test</button>
+      <button class="nav-tab-btn" id="tabNavTheory" onclick="showView('view-theory')">✦ OS Theory</button>
+    </nav>
+
+    <div class="header-quick-actions">
+      <button class="btn btn-ghost" onclick="loadExampleSafe()" title="Load Textbook Safe Preset">⚡ Safe</button>
+      <button class="btn btn-ghost" onclick="loadExampleUnsafe()" title="Load Deadlock-Risk Preset">⚠️ Unsafe</button>
+      <button class="btn btn-ghost" onclick="loadExampleRandom()" title="Random Scenario">🎲 Random</button>
+      <button class="btn btn-ghost" onclick="resetToInitialPrompt()" title="Reset All">↺</button>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       MAIN WRAPPER
+       ===================================================================== -->
+  <main class="main-view-wrap">
+
+    <!-- ===================================================================
+         VIEW 1: MULTI-STEP WIZARD (STAGES 1 & 2)
+         =================================================================== -->
+    <section id="view-wizard" class="view-section active">
+      <!-- Wizard Progress Track -->
+      <div class="wizard-progress-card">
+        <div class="wizard-steps-track">
+          <div class="step-node active" id="wizNode1" onclick="jumpToWizardStep(1)">
+            <div class="step-bubble">1</div>
+            <div class="step-label">Processes</div>
+          </div>
+          <div class="step-connector" id="wizConn1"></div>
+
+          <div class="step-node" id="wizNode2" onclick="jumpToWizardStep(2)">
+            <div class="step-bubble">2</div>
+            <div class="step-label">Resources</div>
+          </div>
+          <div class="step-connector" id="wizConn2"></div>
+
+          <div class="step-node" id="wizNode3" onclick="jumpToWizardStep(3)">
+            <div class="step-bubble">3</div>
+            <div class="step-label">Capacities</div>
+          </div>
+          <div class="step-connector" id="wizConn3"></div>
+
+          <div class="step-node" id="wizNode4" onclick="jumpToWizardStep(4)">
+            <div class="step-bubble">4</div>
+            <div class="step-label">App Allocations</div>
+          </div>
+          <div class="step-connector" id="wizConn4"></div>
+
+          <div class="step-node" id="wizNode5" onclick="jumpToWizardStep(5)">
+            <div class="step-bubble">5</div>
+            <div class="step-label">Review &amp; Launch</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="launchSimulationDirect()" id="quickLaunchBtn">🚀 Launch Simulation</button>
+      </div>
+
+      <!-- SCREEN 1: Process Count -->
+      <div class="wizard-screen" id="wizScreen1">
+        <div class="wizard-screen-header">
+          <span class="wizard-badge">Step 1 of 5</span>
+          <h2 class="wizard-title">How many concurrent processes?</h2>
+          <p class="wizard-subtitle">Select the number of applications or services contending for system hardware (1 to 20).</p>
+        </div>
+
+        <div class="stepper-card-center">
+          <div class="giant-number-stepper">
+            <button class="btn-stepper-big" onclick="adjustProcessCount(-1)">−</button>
+            <input type="number" id="wizardNInput" class="giant-number-input" min="1" max="20" value="5" onchange="onManualNChange(this.value)">
+            <button class="btn-stepper-big" onclick="adjustProcessCount(1)">+</button>
+          </div>
+          <div class="chip-group">
+            <span class="chip-label">Quick select:</span>
+            <button class="chip" onclick="setProcessCount(3)">3 processes</button>
+            <button class="chip" onclick="setProcessCount(5)">5 processes (Classic)</button>
+            <button class="chip" onclick="setProcessCount(7)">7 processes</button>
+            <button class="chip" onclick="setProcessCount(10)">10 processes</button>
+          </div>
+        </div>
+
+        <div class="wizard-footer">
+          <div><span style="font-size:12px;color:var(--text-muted);">Existing process data preserved on growth.</span></div>
+          <button class="btn btn-primary" onclick="goToWizardStep(2)">Next: Resource Types →</button>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: Resource Types Count -->
+      <div class="wizard-screen" id="wizScreen2" style="display:none;">
+        <div class="wizard-screen-header">
+          <span class="wizard-badge">Step 2 of 5</span>
+          <h2 class="wizard-title">How many distinct resource types?</h2>
+          <p class="wizard-subtitle">Define the number of shared hardware or logical pools (CPU, RAM, GPU, Disk, Network) (1 to 10).</p>
+        </div>
+
+        <div class="stepper-card-center">
+          <div class="giant-number-stepper">
+            <button class="btn-stepper-big" onclick="adjustResourceCount(-1)">−</button>
+            <input type="number" id="wizardMInput" class="giant-number-input" min="1" max="10" value="3" onchange="onManualMChange(this.value)">
+            <button class="btn-stepper-big" onclick="adjustResourceCount(1)">+</button>
+          </div>
+          <div class="chip-group">
+            <span class="chip-label">Quick select:</span>
+            <button class="chip" onclick="setResourceCount(2)">2 Types</button>
+            <button class="chip" onclick="setResourceCount(3)">3 Types (Classic A, B, C)</button>
+            <button class="chip" onclick="setResourceCount(4)">4 Types</button>
+            <button class="chip" onclick="setResourceCount(5)">5 Types</button>
+          </div>
+        </div>
+
+        <div class="wizard-footer">
+          <button class="btn btn-ghost" onclick="goToWizardStep(1)">← Back: Process Count</button>
+          <button class="btn btn-primary" onclick="goToWizardStep(3)">Next: Resource Capacities →</button>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: Resource Names & Capacities -->
+      <div class="wizard-screen" id="wizScreen3" style="display:none;">
+        <div class="wizard-screen-header">
+          <span class="wizard-badge">Step 3 of 5</span>
+          <h2 class="wizard-title">Name Resources &amp; Total Instances</h2>
+          <p class="wizard-subtitle">Assign realistic hardware identities and set physical instance limits in the operating system.</p>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <div class="chip-group" style="justify-content: flex-start; margin-bottom: 14px;">
+            <span class="chip-label">Suggestions:</span>
+            <button class="chip" onclick="applyResourcePreset(['CPU', 'RAM', 'GPU'])">CPU / RAM / GPU</button>
+            <button class="chip" onclick="applyResourcePreset(['CPU', 'Memory', 'Disk', 'Network'])">Standard 4-Tier</button>
+            <button class="chip" onclick="applyResourcePreset(['A', 'B', 'C'])">Textbook A, B, C</button>
+          </div>
+          <div class="resources-grid" id="resourceConfigGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <div class="wizard-footer">
+          <button class="btn btn-ghost" onclick="goToWizardStep(2)">← Back: Resource Count</button>
+          <button class="btn btn-primary" onclick="goToWizardStep(4)">Next: Configure Processes →</button>
+        </div>
+      </div>
+
+      <!-- SCREEN 4: Process Configuration Cards -->
+      <div class="wizard-screen" id="wizScreen4" style="display:none;">
+        <div class="wizard-screen-header">
+          <span class="wizard-badge">Step 4 of 5</span>
+          <h2 class="wizard-title">Configure Application Processes</h2>
+          <p class="wizard-subtitle">Assign real-world apps, emojis, colors, and configure Allocation vs Maximum Demand vectors.</p>
+        </div>
+
+        <!-- Live Running Available Bar -->
+        <div class="live-available-strip">
+          <div class="strip-label">
+            <span>⚡ Running System Available:</span>
+            <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">(Total − Σ Allocation)</span>
+          </div>
+          <div class="strip-avail-pills" id="liveAvailPills">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Processes Deck -->
+        <div class="processes-scroll-deck" id="processCardsDeck">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div class="wizard-footer">
+          <button class="btn btn-ghost" onclick="goToWizardStep(3)">← Back: Resource Capacities</button>
+          <button class="btn btn-primary" onclick="goToWizardStep(5)">Next: Review &amp; Launch →</button>
+        </div>
+      </div>
+
+      <!-- SCREEN 5: Review & Launch -->
+      <div class="wizard-screen" id="wizScreen5" style="display:none;">
+        <div class="wizard-screen-header">
+          <span class="wizard-badge">Step 5 of 5</span>
+          <h2 class="wizard-title">Mission Review &amp; Launch Simulation</h2>
+          <p class="wizard-subtitle">Verify your configured system state or load optional built-in presets before launching the engine.</p>
+        </div>
+
+        <!-- Preset Options Banner -->
+        <div class="preset-banner">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#fff;">Optional Presets &amp; Benchmarks</div>
+            <div style="font-size:12px;color:var(--text-dim);">Load known educational scenarios or test randomized inputs.</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" onclick="loadExampleSafe()">⚡ Textbook Safe (5×3)</button>
+            <button class="btn btn-ghost" onclick="loadExampleUnsafe()">⚠️ Unsafe Risk (4×3)</button>
+            <button class="btn btn-ghost" onclick="loadExampleRandom()">🎲 Random Valid</button>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="review-summary-grid">
+          <div class="review-card">
+            <div class="review-card-title">Active Processes</div>
+            <div class="review-card-value" id="revProcCount">5 Processes</div>
+          </div>
+          <div class="review-card">
+            <div class="review-card-title">Resource Types</div>
+            <div class="review-card-value" id="revResCount">3 Types</div>
+          </div>
+          <div class="review-card">
+            <div class="review-card-title">Initial Available Pool</div>
+            <div class="review-card-value" id="revAvailVec" style="color:var(--cyan-bright);font-family:var(--font-mono);">[3, 3, 2]</div>
+          </div>
+        </div>
+
+        <!-- Matrix Preview Table -->
+        <div class="review-matrix-preview">
+          <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;">Scenario Matrix Overview</div>
+          <table class="review-table" id="reviewSummaryTable">
+            <!-- Dynamically populated -->
+          </table>
+        </div>
+
+        <div style="text-align: center; margin-top: 10px;">
+          <button class="btn btn-glowing" onclick="launchSimulationDirect()" style="font-size: 17px; padding: 16px 42px;">
+            🚀 LAUNCH REAL-TIME SIMULATION
+          </button>
+        </div>
+
+        <div class="wizard-footer" style="margin-top: 20px;">
+          <button class="btn btn-ghost" onclick="goToWizardStep(4)">← Back: Edit Processes</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="exportScenarioJSON()">💾 Save JSON</button>
+            <button class="btn btn-ghost btn-sm" onclick="triggerJSONUpload()">📂 Load JSON</button>
+            <input type="file" id="jsonFileInput" style="display:none" accept=".json" onchange="handleJSONUpload(event)">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 2: LIVE SIMULATION SHOWPIECE (STAGE 3)
+         =================================================================== -->
+    <section id="view-sim" class="view-section">
+      <div class="sim-layout">
+        <!-- Overall Progress Bar -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">
+            Execution Progress: <span id="overallProgressText" style="color:var(--cyan-bright);">0% (0 / 0 completed)</span>
+          </div>
+          <div style="flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;position:relative;">
+            <div id="overallProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--cyan-bright),var(--status-safe));transition:width 0.4s ease;box-shadow:0 0 10px var(--cyan-bright);"></div>
+          </div>
+        </div>
+
+        <!-- Resource Pools / Liquid Energy Tanks -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-size:12px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">
+              ⚡ Available System Resource Energy Pools
+            </div>
+            <div style="font-size:12px;color:var(--cyan-bright);font-family:var(--font-mono);" id="simStepHeaderTag">
+              Step: 0 / 0
+            </div>
+          </div>
+          <div class="resource-tanks-container" id="resourceTanksDeck">
+            <!-- Dynamically populated liquid tanks -->
+          </div>
+        </div>
+
+        <!-- Active Scanner Laser Card -->
+        <div class="active-scanner-card" id="scannerCard">
+          <div class="scanner-title-bar">
+            <div>
+              <span class="wizard-badge" id="scannerBadge">STANDBY</span>
+              <h3 style="font-size:18px;font-weight:800;color:#fff;" id="scannerHeading">Scheduler Initialized</h3>
+            </div>
+            <div id="scannerProcessIcon" style="font-size:32px;">🖥️</div>
+          </div>
+
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;" id="scannerDesc">
+            Work vector initialized to Available. Ready to evaluate candidates where Need ≤ Work.
+          </div>
+
+          <div class="scanner-comparisons-row" id="scannerComparisons">
+            <!-- Real-time per-resource comparison pills -->
+          </div>
+
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:13px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;">
+            <div style="color:var(--cyan-bright);" id="scannerWorkVec">Work: [—]</div>
+            <div style="color:var(--text-muted);" id="scannerFinishVec">Finish: [—]</div>
+          </div>
+        </div>
+
+        <!-- Process Scheduler Board -->
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">
+            📋 OS Process Scheduler Deck
+          </div>
+          <div class="scheduler-board" id="schedulerBoard">
+            <!-- Dynamically populated cards -->
+          </div>
+        </div>
+
+        <!-- Safe Sequence Timeline -->
+        <div class="safe-sequence-timeline">
+          <div class="timeline-title">Safe Execution Sequence Timeline</div>
+          <div class="timeline-track" id="timelineTrack">
+            <span style="color:var(--text-muted);font-style:italic;">Awaiting process executions...</span>
+          </div>
+        </div>
+
+        <!-- Mission Terminal Log -->
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
+            📟 OS Kernel Execution Stream Log
+          </div>
+          <div class="sim-terminal-log" id="simTerminalLog">
+            <div class="log-line"><span class="log-time">[00:00:00]</span><span class="log-pass">Kernel initialized. Banker's Algorithm engine online.</span></div>
+          </div>
+        </div>
+
+        <!-- Control Deck -->
+        <div class="sim-control-deck">
+          <div class="control-playback-group">
+            <button class="btn btn-ghost" onclick="simFirst()" title="First Step">⏮ First</button>
+            <button class="btn btn-ghost" onclick="simPrev()" title="Previous Step">◀ Prev</button>
+            <button class="btn btn-primary" id="simPlayBtn" onclick="simTogglePlay()">▶ Play</button>
+            <button class="btn btn-ghost" onclick="simNext()" title="Next Step">Next ▶</button>
+            <button class="btn btn-ghost" onclick="simLast()" title="Last Step">Last ⏭</button>
+            <button class="btn btn-ghost" onclick="simRestart()" title="Restart Simulation">↺ Restart</button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:18px;">
+            <div class="speed-adjuster">
+              <span>Speed:</span>
+              <input type="range" class="speed-slider" id="simSpeedSlider" min="300" max="2500" value="1000" oninput="onSpeedSliderChange(this.value)">
+              <span id="simSpeedLabel" style="font-family:var(--font-mono);font-weight:700;">1.0s</span>
+            </div>
+
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;color:var(--text-dim);">
+              <input type="checkbox" id="autoPlayCheckbox" checked onchange="onAutoPlayToggle()">
+              <span>Auto-Play</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 3: CALCULATIONS & AUDIT TRACE (STAGE 4)
+         =================================================================== -->
+    <section id="view-calc" class="view-section">
+      <div class="calc-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <h2 style="font-size:20px;font-weight:800;color:#fff;">Mathematical Audit &amp; Verification</h2>
+            <p style="font-size:13px;color:var(--text-dim);">Full transparency into all matrices, calculated formulas, and step evaluations.</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="exportCSVReport()">📊 Download CSV</button>
+            <button class="btn btn-primary btn-sm" onclick="exportTextReport()">📄 Download Text Report</button>
+          </div>
+        </div>
+
+        <div class="calc-formula-block">
+          <div><strong>1. Need Matrix Formula:</strong> Need[i][j] = Maximum[i][j] − Allocation[i][j]</div>
+          <div id="calcFormulaNeedEx">Example: Substitute values...</div>
+          <div style="margin-top:6px;"><strong>2. Initial Available Formula:</strong> Available[j] = Total[j] − Σ Allocation[i][j]</div>
+          <div id="calcFormulaAvailEx">Example: Substitute values...</div>
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:var(--text-dim);margin:20px 0 10px;text-transform:uppercase;">
+          Raw Scenario Matrices &amp; System Vectors
+        </div>
+        <div id="calcMatricesOverview" class="review-matrix-preview">
+          <!-- Dynamically populated tables -->
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:var(--text-dim);margin:20px 0 10px;text-transform:uppercase;">
+          Iterative Step Evaluation Trace (Audit Log)
+        </div>
+        <div id="calcTraceDeck">
+          <!-- Dynamically populated trace cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 4: FINAL VERDICT (STAGE 5)
+         =================================================================== -->
+    <section id="view-verdict" class="view-section">
+      <!-- Verdict Summary Stat Cards -->
+      <div class="review-summary-grid" style="margin-bottom:20px;">
+        <div class="review-card">
+          <div class="review-card-title">Completed Processes</div>
+          <div class="review-card-value" id="verdictFinishedCount" style="color:var(--status-safe);">—</div>
+        </div>
+        <div class="review-card">
+          <div class="review-card-title">Safety Steps Taken</div>
+          <div class="review-card-value" id="verdictStepsCount" style="color:var(--cyan-bright);">—</div>
+        </div>
+        <div class="review-card">
+          <div class="review-card-title">Final Work Vector</div>
+          <div class="review-card-value" id="verdictFinalWork" style="font-family:var(--font-mono);color:#fff;">—</div>
+        </div>
+      </div>
+
+      <div class="verdict-hero" id="verdictHeroCard">
+        <div style="font-size:48px;margin-bottom:12px;" id="verdictHeroIcon">🏆</div>
+        <h2 class="verdict-title" id="verdictHeroTitle">System State Analysis</h2>
+        <p class="verdict-desc" id="verdictHeroDesc">Run the simulation to inspect the final deadlock avoidance verdict.</p>
+
+        <!-- Safe sequence chips container -->
+        <div id="verdictSequenceBox" style="margin:20px auto;max-width:800px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;"></div>
+
+        <!-- Unsafe detail box if deadlocked -->
+        <div class="verdict-stuck-box" id="verdictStuckBox" style="display:none;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:14px;">
+        <button class="btn btn-primary" onclick="showView('view-sim'); simRestart(); simTogglePlay();">↺ Replay Simulation</button>
+        <button class="btn btn-ghost" onclick="showView('view-wizard'); goToWizardStep(4);">✏️ Edit Inputs</button>
+        <button class="btn btn-ghost" onclick="showView('view-wizard'); goToWizardStep(1);">🆕 New Problem</button>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 5: RESOURCE REQUEST TESTER (STAGE 6)
+         =================================================================== -->
+    <section id="view-req" class="view-section">
+      <div class="req-sim-card">
+        <h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;">Interactive Resource Request Simulator</h2>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px;">
+          Test an immediate dynamic request from any application. If granting results in an unsafe state, all tentative changes are automatically rolled back without corrupting the active system.
+        </p>
+
+        <div style="display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;margin-bottom:24px;">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:6px;">Target Process</label>
+            <select id="reqProcSelect" onchange="onReqProcChange()" style="padding:10px 14px;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:6px;color:#fff;font-weight:700;font-size:14px;outline:none;min-width:180px;">
+            </select>
+          </div>
+
+          <div id="reqVecInputsDeck" style="display:flex;gap:8px;align-items:flex-end;">
+            <!-- Dynamically populated -->
+          </div>
+
+          <button class="btn btn-primary" onclick="simulateActiveRequest()">⟐ Evaluate Request</button>
+          <button class="btn btn-success" id="btnApplyApprovedReq" style="display:none;" onclick="applyApprovedRequest()">✔ Apply to Scenario</button>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <div class="phase-step-card" id="reqPhase1">
+            <span><strong>Phase 1:</strong> Claim Limit Check (Request ≤ Declared Need)</span>
+            <span class="wizard-badge" id="reqPhaseBadge1">PENDING</span>
+          </div>
+          <div class="phase-step-card" id="reqPhase2">
+            <span><strong>Phase 2:</strong> Availability Check (Request ≤ Available Hardware)</span>
+            <span class="wizard-badge" id="reqPhaseBadge2">PENDING</span>
+          </div>
+          <div class="phase-step-card" id="reqPhase3">
+            <span><strong>Phase 3:</strong> Tentative Safety Check (Pretend Allocate + Run Safety)</span>
+            <span class="wizard-badge" id="reqPhaseBadge3">PENDING</span>
+          </div>
+        </div>
+
+        <div class="calc-formula-block" id="reqExplanationBlock">
+          Select an application process and test a request vector above.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 6: EDUCATIONAL OS THEORY
+         =================================================================== -->
+    <section id="view-theory" class="view-section">
+      <div class="calc-card">
+        <h2 style="font-size:22px;font-weight:800;color:#fff;margin-bottom:16px;">Operating Systems Theory &amp; Deadlock Avoidance</h2>
+        
+        <div style="line-height:1.7;color:#cbd5e1;font-size:14px;">
+          <h3 style="color:var(--cyan-bright);margin-top:16px;font-size:16px;">1. What is Banker's Algorithm?</h3>
+          <p>
+            Developed by <strong>Edsger W. Dijkstra (1965)</strong>, the Banker's Algorithm is a dynamic deadlock-avoidance algorithm. It tests for safety by simulating the allocation of predetermined maximum possible amounts of all resources, and then makes an "s-state" check to test for possible deadlocks before permitting actual allocation.
+          </p>
+
+          <h3 style="color:var(--cyan-bright);margin-top:16px;font-size:16px;">2. The Crucial Difference: Unsafe State vs. Deadlock</h3>
+          <p style="background:rgba(245,158,11,0.1);border-left:4px solid var(--status-wait);padding:12px 16px;border-radius:4px;color:#fde68a;">
+            <strong>An Unsafe State is NOT necessarily a Deadlock!</strong><br>
+            An unsafe state simply means the operating system cannot <em>guarantee</em> that processes will avoid deadlock if every process simultaneously demands its maximum declared resources. The system may run to completion safely if applications complete earlier or request fewer resources, but deadlock avoidance defensively refuses to enter unsafe states.
+          </p>
+
+          <h3 style="color:var(--cyan-bright);margin-top:16px;font-size:16px;">3. The Four Coffman Deadlock Conditions</h3>
+          <p>
+            For a deadlock to occur, all four conditions must hold simultaneously:
+          </p>
+          <ul style="margin-left:24px;margin-top:8px;">
+            <li><strong>Mutual Exclusion:</strong> At least one resource must be held in a non-shareable mode.</li>
+            <li><strong>Hold and Wait:</strong> A process must be currently holding at least one resource and requesting additional resources.</li>
+            <li><strong>No Preemption:</strong> Resources cannot be forcibly seized from a process; they can only be released voluntarily.</li>
+            <li><strong>Circular Wait:</strong> A closed chain of processes exists such that each process holds at least one resource needed by the next.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* =====================================================================
+   CORE JAVASCRIPT ENGINE — MISSION CONTROL OS
+   ===================================================================== */
+
+// App real-world suggestion catalog
+const APP_CATALOG = [
+  { name: "Chrome", icon: "🌐", color: "#3b82f6" },
+  { name: "Spotify", icon: "🎵", color: "#1db954" },
+  { name: "VS Code", icon: "💻", color: "#007acc" },
+  { name: "Zoom", icon: "📹", color: "#2d8cff" },
+  { name: "Netflix", icon: "🎬", color: "#e50914" },
+  { name: "WhatsApp", icon: "💬", color: "#25d366" },
+  { name: "Photoshop", icon: "🎨", color: "#31a8ff" },
+  { name: "Steam", icon: "🎮", color: "#1b2838" },
+  { name: "Docker", icon: "🐳", color: "#2496ed" },
+  { name: "Discord", icon: "🎧", color: "#5865f2" },
+  { name: "Figma", icon: "📐", color: "#f24e1e" },
+  { name: "Slack", icon: "📋", color: "#4a154b" }
+];
+
+// Active Scenario Model
+let scenario = {
+  n: 5,
+  m: 3,
+  process_names: ["Chrome", "Spotify", "VS Code", "Zoom", "Netflix"],
+  process_icons: ["🌐", "🎵", "💻", "📹", "🎬"],
+  process_colors: ["#3b82f6", "#1db954", "#007acc", "#2d8cff", "#e50914"],
+  resource_names: ["CPU", "RAM", "GPU"],
+  total: [10, 5, 7],
+  allocation: [
+    [0, 1, 0],
+    [2, 0, 0],
+    [3, 0, 2],
+    [2, 1, 1],
+    [0, 0, 2]
+  ],
+  maximum: [
+    [7, 5, 3],
+    [3, 2, 2],
+    [9, 0, 2],
+    [2, 2, 2],
+    [4, 3, 3]
+  ]
+};
+
+// Simulation State
+let activeSafetyResult = null;
+let simStepIndex = -1;
+let isSimPlaying = false;
+let simTimer = null;
+let simSpeedMs = 1000;
+let autoPlayEnabled = true;
+
+// Active Request Simulation State
+let lastRequestSimResult = null;
+
+// Initialize on DOM load
+window.addEventListener("DOMContentLoaded", () => {
+  initParticleBackground();
+  renderAllWizardScreens();
+  fetchSafetyCalculation(true);
+});
+
+/* =====================================================================
+   VIEW SWITCHING
+   ===================================================================== */
+function showView(viewId) {
+  document.querySelectorAll(".view-section").forEach(v => v.classList.remove("active"));
+  document.querySelectorAll(".nav-tab-btn").forEach(b => b.classList.remove("active"));
+  
+  const target = document.getElementById(viewId);
+  if (target) target.classList.add("active");
+
+  if (viewId === "view-wizard") document.getElementById("tabNavWizard").classList.add("active");
+  if (viewId === "view-sim") document.getElementById("tabNavSim").classList.add("active");
+  if (viewId === "view-calc") {
+    document.getElementById("tabNavCalc").classList.add("active");
+    renderCalculationsView();
+  }
+  if (viewId === "view-verdict") {
+    document.getElementById("tabNavVerdict").classList.add("active");
+    renderVerdictView();
+  }
+  if (viewId === "view-req") {
+    document.getElementById("tabNavReq").classList.add("active");
+    setupRequestSimulator();
+  }
+  if (viewId === "view-theory") document.getElementById("tabNavTheory").classList.add("active");
+}
+
+/* =====================================================================
+   PARTICLE CANVAS (OFFLINE COSMIC STARFIELD)
+   ===================================================================== */
+function initParticleBackground() {
+  const canvas = document.getElementById("bgCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  let w = canvas.width = window.innerWidth;
+  let h = canvas.height = window.innerHeight;
+
+  window.addEventListener("resize", () => {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  });
+
+  const stars = Array.from({ length: 65 }, () => ({
+    x: Math.random() * w,
+    y: Math.random() * h,
+    r: Math.random() * 1.5 + 0.4,
+    vx: (Math.random() - 0.5) * 0.15,
+    vy: (Math.random() - 0.5) * 0.15,
+    alpha: Math.random() * 0.7 + 0.2
+  }));
+
+  function loop() {
+    ctx.clearRect(0, 0, w, h);
+    stars.forEach(s => {
+      s.x += s.vx;
+      s.y += s.vy;
+      if (s.x < 0) s.x = w;
+      if (s.x > w) s.x = 0;
+      if (s.y < 0) s.y = h;
+      if (s.y > h) s.y = 0;
+      ctx.fillStyle = `rgba(56, 189, 248, ${s.alpha})`;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+/* =====================================================================
+   LOCAL COMPUTATIONS
+   ===================================================================== */
+function getNeedMatrix() {
+  const need = [];
+  for (let i = 0; i < scenario.n; i++) {
+    const row = [];
+    for (let j = 0; j < scenario.m; j++) {
+      const maxVal = scenario.maximum[i] ? (scenario.maximum[i][j] || 0) : 0;
+      const allocVal = scenario.allocation[i] ? (scenario.allocation[i][j] || 0) : 0;
+      row.push(maxVal - allocVal);
+    }
+    need.push(row);
+  }
+  return need;
+}
+
+function getAvailableVector() {
+  const avail = [];
+  for (let j = 0; j < scenario.m; j++) {
+    let sumAlloc = 0;
+    for (let i = 0; i < scenario.n; i++) {
+      sumAlloc += scenario.allocation[i] ? (scenario.allocation[i][j] || 0) : 0;
+    }
+    avail.push((scenario.total[j] || 0) - sumAlloc);
+  }
+  return avail;
+}
+
+/* =====================================================================
+   STAGE 2: WIZARD CONTROLLER & RENDERING
+   ===================================================================== */
+let currentWizardStep = 1;
+
+function goToWizardStep(stepNum) {
+  currentWizardStep = stepNum;
+  for (let s = 1; s <= 5; s++) {
+    const screen = document.getElementById(`wizScreen${s}`);
+    const node = document.getElementById(`wizNode${s}`);
+    const conn = document.getElementById(`wizConn${s}`);
+
+    if (screen) screen.style.display = (s === stepNum) ? "flex" : "none";
+    if (node) {
+      node.classList.remove("active", "completed");
+      if (s === stepNum) node.classList.add("active");
+      else if (s < stepNum) node.classList.add("completed");
+    }
+    if (conn) {
+      if (s < stepNum) conn.classList.add("filled");
+      else conn.classList.remove("filled");
+    }
+  }
+
+  if (stepNum === 3) renderWizardStep3();
+  if (stepNum === 4) renderWizardStep4();
+  if (stepNum === 5) renderWizardStep5();
+}
+
+function jumpToWizardStep(stepNum) {
+  goToWizardStep(stepNum);
+}
+
+function renderAllWizardScreens() {
+  document.getElementById("wizardNInput").value = scenario.n;
+  document.getElementById("wizardMInput").value = scenario.m;
+  renderWizardStep3();
+  renderWizardStep4();
+  renderWizardStep5();
+}
+
+/* Step 1 Handlers */
+function setProcessCount(n) {
+  resizeScenario(n, scenario.m);
+  document.getElementById("wizardNInput").value = n;
+}
+function adjustProcessCount(delta) {
+  const newN = Math.max(1, Math.min(20, scenario.n + delta));
+  setProcessCount(newN);
+}
+function onManualNChange(val) {
+  const n = Math.max(1, Math.min(20, parseInt(val) || 1));
+  setProcessCount(n);
+}
+
+/* Step 2 Handlers */
+function setResourceCount(m) {
+  resizeScenario(scenario.n, m);
+  document.getElementById("wizardMInput").value = m;
+}
+function adjustResourceCount(delta) {
+  const newM = Math.max(1, Math.min(10, scenario.m + delta));
+  setResourceCount(newM);
+}
+function onManualMChange(val) {
+  const m = Math.max(1, Math.min(10, parseInt(val) || 1));
+  setResourceCount(m);
+}
+
+/* Dynamic Dimension Resize with Data Preservation */
+function resizeScenario(newN, newM) {
+  if (newN === scenario.n && newM === scenario.m) return;
+
+  // Check data loss on shrink
+  let lost = [];
+  if (newN < scenario.n) {
+    for (let i = newN; i < scenario.n; i++) {
+      const sum = scenario.allocation[i].reduce((a, b) => a + b, 0);
+      if (sum > 0) lost.push(`App "${scenario.process_names[i]}"`);
+    }
+  }
+  if (newM < scenario.m) {
+    for (let j = newM; j < scenario.m; j++) {
+      if (scenario.total[j] > 0) lost.push(`Resource "${scenario.resource_names[j]}"`);
+    }
+  }
+
+  if (lost.length > 0) {
+    const ok = confirm(`Reducing dimensions will remove configured values for:\n • ${lost.join("\n • ")}\n\nDo you want to proceed?`);
+    if (!ok) {
+      document.getElementById("wizardNInput").value = scenario.n;
+      document.getElementById("wizardMInput").value = scenario.m;
+      return;
+    }
+  }
+
+  const oldN = scenario.n;
+  const oldM = scenario.m;
+
+  // Resize process meta
+  const newNames = scenario.process_names.slice(0, newN);
+  const newIcons = scenario.process_icons.slice(0, newN);
+  const newColors = scenario.process_colors.slice(0, newN);
+
+  for (let i = newNames.length; i < newN; i++) {
+    const cat = APP_CATALOG[i % APP_CATALOG.length];
+    newNames.push(cat.name + (i >= APP_CATALOG.length ? `_${i}` : ""));
+    newIcons.push(cat.icon);
+    newColors.push(cat.color);
+  }
+
+  // Resize resource names & totals
+  const newRes = scenario.resource_names.slice(0, newM);
+  const newTot = scenario.total.slice(0, newM);
+  for (let j = newRes.length; j < newM; j++) {
+    newRes.push(String.fromCharCode(65 + j));
+    newTot.push(10);
+  }
+
+  // Resize matrices
+  const newAlloc = [];
+  const newMax = [];
+  for (let i = 0; i < newN; i++) {
+    const rAlloc = [];
+    const rMax = [];
+    for (let j = 0; j < newM; j++) {
+      if (i < oldN && j < oldM) {
+        rAlloc.push(scenario.allocation[i][j]);
+        rMax.push(scenario.maximum[i][j]);
+      } else {
+        rAlloc.push(0);
+        rMax.push(0);
+      }
+    }
+    newAlloc.push(rAlloc);
+    newMax.push(rMax);
+  }
+
+  scenario.n = newN;
+  scenario.m = newM;
+  scenario.process_names = newNames;
+  scenario.process_icons = newIcons;
+  scenario.process_colors = newColors;
+  scenario.resource_names = newRes;
+  scenario.total = newTot;
+  scenario.allocation = newAlloc;
+  scenario.maximum = newMax;
+
+  renderAllWizardScreens();
+}
+
+/* Step 3: Render Resources Grid */
+function renderWizardStep3() {
+  const grid = document.getElementById("resourceConfigGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  for (let j = 0; j < scenario.m; j++) {
+    const card = document.createElement("div");
+    card.className = "resource-config-card";
+    card.innerHTML = `
+      <span class="res-index-pill">#${j + 1}</span>
+      <div class="res-field-group">
+        <label>Resource Identifier</label>
+        <input type="text" class="res-input" value="${scenario.resource_names[j]}" onchange="updateResourceName(${j}, this.value)">
+      </div>
+      <div class="res-field-group">
+        <label>Total Physical Instances</label>
+        <input type="number" class="res-input res-input-number" min="0" value="${scenario.total[j]}" onchange="updateResourceTotal(${j}, this.value)">
+      </div>
+    `;
+    grid.appendChild(card);
+  }
+}
+
+function updateResourceName(col, val) {
+  if (val.trim()) {
+    scenario.resource_names[col] = val.trim();
+    renderAllWizardScreens();
+  }
+}
+function updateResourceTotal(col, val) {
+  const v = Math.max(0, parseInt(val) || 0);
+  scenario.total[col] = v;
+  renderWizardStep4();
+}
+function applyResourcePreset(presetNames) {
+  const count = Math.min(scenario.m, presetNames.length);
+  for (let j = 0; j < count; j++) {
+    scenario.resource_names[j] = presetNames[j];
+  }
+  renderAllWizardScreens();
+}
+
+/* Step 4: Render Process Cards */
+function renderWizardStep4() {
+  const avail = getAvailableVector();
+  const need = getNeedMatrix();
+
+  // Update Live Available Strip
+  const strip = document.getElementById("liveAvailPills");
+  if (strip) {
+    strip.innerHTML = "";
+    for (let j = 0; j < scenario.m; j++) {
+      const val = avail[j];
+      const isNeg = val < 0;
+      strip.innerHTML += `
+        <div class="avail-pill ${isNeg ? 'danger' : 'safe'}">
+          <span>${scenario.resource_names[j]}:</span>
+          <span>${val} free</span>
+        </div>
+      `;
+    }
+  }
+
+  // Render Process Deck Cards
+  const deck = document.getElementById("processCardsDeck");
+  if (!deck) return;
+  deck.innerHTML = "";
+
+  for (let i = 0; i < scenario.n; i++) {
+    const card = document.createElement("div");
+    card.className = "process-setup-card";
+    card.style.borderLeft = `4px solid ${scenario.process_colors[i] || '#38bdf8'}`;
+
+    let headersHtml = "<th></th>";
+    let allocCellsHtml = `<td class="vec-type-title">Allocated:</td>`;
+    let maxCellsHtml = `<td class="vec-type-title">Maximum:</td>`;
+    let needCellsHtml = `<td class="vec-type-title">Calculated Need:</td>`;
+
+    for (let j = 0; j < scenario.m; j++) {
+      const resName = scenario.resource_names[j];
+      const aVal = scenario.allocation[i][j];
+      const mVal = scenario.maximum[i][j];
+      const nVal = need[i][j];
+      const isNeedErr = nVal < 0;
+
+      headersHtml += `<th>${resName}</th>`;
+      allocCellsHtml += `<td><input type="number" min="0" class="cell-num-input" value="${aVal}" onchange="updateMatrixCell('allocation', ${i}, ${j}, this.value)"></td>`;
+      maxCellsHtml += `<td><input type="number" min="0" class="cell-num-input" value="${mVal}" onchange="updateMatrixCell('maximum', ${i}, ${j}, this.value)"></td>`;
+      needCellsHtml += `<td><span class="cell-num-computed ${isNeedErr ? 'error' : ''}">${nVal}</span></td>`;
+    }
+
+    card.innerHTML = `
+      <div class="proc-card-top">
+        <div class="proc-meta-inputs">
+          <div class="proc-icon-badge" onclick="cycleAppIcon(${i})">${scenario.process_icons[i]}</div>
+          <input type="text" class="proc-name-input" value="${scenario.process_names[i]}" onchange="updateProcessName(${i}, this.value)">
+          <input type="color" class="proc-color-picker" value="${scenario.process_colors[i]}" onchange="updateProcessColor(${i}, this.value)">
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono);">PID: P${i}</div>
+      </div>
+
+      <table class="proc-vectors-table">
+        <tr>${headersHtml}</tr>
+        <tr>${allocCellsHtml}</tr>
+        <tr>${maxCellsHtml}</tr>
+        <tr>${needCellsHtml}</tr>
+      </table>
+    `;
+    deck.appendChild(card);
+  }
+}
+
+function updateProcessName(row, val) {
+  if (val.trim()) scenario.process_names[row] = val.trim();
+}
+function updateProcessColor(row, val) {
+  scenario.process_colors[row] = val;
+  renderWizardStep4();
+}
+function cycleAppIcon(row) {
+  const current = scenario.process_icons[row];
+  const idx = APP_CATALOG.findIndex(a => a.icon === current);
+  const next = APP_CATALOG[(idx + 1) % APP_CATALOG.length];
+  scenario.process_icons[row] = next.icon;
+  renderWizardStep4();
+}
+
+function updateMatrixCell(matType, row, col, val) {
+  const v = Math.max(0, parseInt(val) || 0);
+  scenario[matType][row][col] = v;
+  renderWizardStep4();
+}
+
+/* Step 5: Review Overview */
+function renderWizardStep5() {
+  document.getElementById("revProcCount").innerText = `${scenario.n} Processes`;
+  document.getElementById("revResCount").innerText = `${scenario.m} Types`;
+  const avail = getAvailableVector();
+  document.getElementById("revAvailVec").innerText = `[${avail.join(", ")}]`;
+
+  const tbl = document.getElementById("reviewSummaryTable");
+  if (!tbl) return;
+
+  const need = getNeedMatrix();
+  let html = `
+    <tr>
+      <th style="text-align:left;">App Process</th>
+      <th>Allocated Vector</th>
+      <th>Maximum Claim</th>
+      <th>Need Vector</th>
+    </tr>
+  `;
+
+  for (let i = 0; i < scenario.n; i++) {
+    html += `
+      <tr>
+        <td class="proc-name-col">
+          <span style="margin-right:6px;">${scenario.process_icons[i]}</span>
+          <span>${scenario.process_names[i]}</span>
+        </td>
+        <td style="font-family:var(--font-mono);">[${scenario.allocation[i].join(", ")}]</td>
+        <td style="font-family:var(--font-mono);">[${scenario.maximum[i].join(", ")}]</td>
+        <td style="font-family:var(--font-mono);color:var(--cyan-bright);font-weight:700;">[${need[i].join(", ")}]</td>
+      </tr>
+    `;
+  }
+  tbl.innerHTML = html;
+}
+
+/* Direct Launch */
+async function launchSimulationDirect() {
+  const avail = getAvailableVector();
+  if (avail.some(v => v < 0)) {
+    alert("Resource Limit Violation: Sum of allocated resources exceeds total physical capacity. Please correct before running.");
+    goToWizardStep(4);
+    return;
+  }
+  const need = getNeedMatrix();
+  if (need.some(row => row.some(v => v < 0))) {
+    alert("Logical Error: Some Maximum Demands are less than Allocated instances (Need is negative). Please correct.");
+    goToWizardStep(4);
+    return;
+  }
+
+  await fetchSafetyCalculation();
+  showView("view-sim");
+  initSchedulerBoard();
+  simRestart();
+  if (autoPlayEnabled) {
+    simTogglePlay();
+  }
+}
+
+/* =====================================================================
+   SAFETY ENGINE API CALL
+   ===================================================================== */
+async function fetchSafetyCalculation(silent = false) {
+  try {
+    const res = await fetch("/api/run-safety", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(scenario)
+    });
+    const data = await res.json();
+    if (!data.success) {
+      if (!silent) alert(`Validation Error: ${data.error}`);
+      return false;
+    }
+    activeSafetyResult = data;
+    return true;
+  } catch (err) {
+    console.error("Safety fetch error:", err);
+    return false;
+  }
+}
+
+/* =====================================================================
+   STAGE 3: LIVE SIMULATION CONTROLLER & SHOWPIECE
+   ===================================================================== */
+function initSchedulerBoard() {
+  // Render Resource Energy Liquid Tanks
+  const tanksDeck = document.getElementById("resourceTanksDeck");
+  if (tanksDeck) {
+    tanksDeck.innerHTML = "";
+    for (let j = 0; j < scenario.m; j++) {
+      const card = document.createElement("div");
+      card.className = "resource-tank-card";
+      card.id = `tankCard-${j}`;
+      card.innerHTML = `
+        <div class="tank-res-name">${scenario.resource_names[j]}</div>
+        <div class="tank-gauge-wrap">
+          <div class="tank-liquid" id="tankLiquid-${j}" style="height:0%;"></div>
+        </div>
+        <div class="tank-numbers">
+          <span id="tankAvailVal-${j}">0</span> <span class="total-tag">/ ${scenario.total[j]}</span>
+        </div>
+      `;
+      tanksDeck.appendChild(card);
+    }
+  }
+
+  // Render Scheduler Cards
+  const board = document.getElementById("schedulerBoard");
+  if (board) {
+    board.innerHTML = "";
+    const need = getNeedMatrix();
+
+    for (let i = 0; i < scenario.n; i++) {
+      const card = document.createElement("div");
+      card.className = "scheduler-proc-card";
+      card.id = `schedCard-${i}`;
+      card.style.borderLeft = `4px solid ${scenario.process_colors[i]}`;
+      card.innerHTML = `
+        <div class="proc-card-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">${scenario.process_icons[i]}</span>
+            <span style="font-weight:800;font-size:14px;color:#fff;">${scenario.process_names[i]}</span>
+          </div>
+          <span class="proc-badge-tag badge-waiting" id="schedBadge-${i}">WAITING</span>
+        </div>
+        <div class="proc-vectors-mini">
+          <div class="mini-vec-row"><span>Allocated:</span><span>[${scenario.allocation[i].join(", ")}]</span></div>
+          <div class="mini-vec-row"><span>Maximum:</span><span>[${scenario.maximum[i].join(", ")}]</span></div>
+          <div class="mini-vec-row" style="color:var(--cyan-bright);font-weight:bold;"><span>Need:</span><span>[${need[i].join(", ")}]</span></div>
+        </div>
+      `;
+      board.appendChild(card);
+    }
+  }
+}
+
+function updateResourceTanks(workVec) {
+  for (let j = 0; j < scenario.m; j++) {
+    const total = scenario.total[j] || 1;
+    const avail = workVec[j] || 0;
+    const pct = Math.max(0, Math.min(100, Math.round((avail / total) * 100)));
+
+    const liq = document.getElementById(`tankLiquid-${j}`);
+    const num = document.getElementById(`tankAvailVal-${j}`);
+    if (liq) liq.style.height = `${pct}%`;
+    if (num) num.innerText = avail;
+  }
+}
+
+function simRestart() {
+  simPause();
+  simStepIndex = -1;
+  document.getElementById("timelineTrack").innerHTML = '<span style="color:var(--text-muted);font-style:italic;">Awaiting process executions...</span>';
+  document.getElementById("simTerminalLog").innerHTML = '<div class="log-line"><span class="log-time">[00:00:00]</span><span class="log-pass">Simulation restarted. Ready.</span></div>';
+  const progBar = document.getElementById("overallProgressBar");
+  if (progBar) progBar.style.width = "0%";
+  const progTxt = document.getElementById("overallProgressText");
+  if (progTxt && activeSafetyResult) progTxt.innerText = `0% (0 / ${activeSafetyResult.steps.length} completed)`;
+  updateSimulationUI();
+}
+
+function simFirst() {
+  simPause();
+  if (activeSafetyResult && activeSafetyResult.steps.length > 0) {
+    simStepIndex = 0;
+    updateSimulationUI();
+  }
+}
+
+function simPrev() {
+  simPause();
+  if (simStepIndex > -1) {
+    simStepIndex--;
+    updateSimulationUI();
+  }
+}
+
+function simNext() {
+  simPause();
+  if (activeSafetyResult && simStepIndex < activeSafetyResult.steps.length - 1) {
+    simStepIndex++;
+    updateSimulationUI();
+  }
+}
+
+function simLast() {
+  simPause();
+  if (activeSafetyResult && activeSafetyResult.steps.length > 0) {
+    simStepIndex = activeSafetyResult.steps.length - 1;
+    updateSimulationUI();
+  }
+}
+
+function simTogglePlay() {
+  if (isSimPlaying) simPause();
+  else simPlay();
+}
+
+function simPlay() {
+  if (!activeSafetyResult || activeSafetyResult.steps.length === 0) return;
+  if (simStepIndex >= activeSafetyResult.steps.length - 1) simStepIndex = -1;
+  isSimPlaying = true;
+  document.getElementById("simPlayBtn").innerText = "⏸ Pause";
+  runSimLoop();
+}
+
+function simPause() {
+  isSimPlaying = false;
+  if (simTimer) clearTimeout(simTimer);
+  document.getElementById("simPlayBtn").innerText = "▶ Play";
+}
+
+function runSimLoop() {
+  if (!isSimPlaying || !activeSafetyResult) return;
+  if (simStepIndex < activeSafetyResult.steps.length - 1) {
+    simStepIndex++;
+    updateSimulationUI();
+    simTimer = setTimeout(runSimLoop, simSpeedMs);
+  } else {
+    simPause();
+    // Finished - auto switch to verdict after short delay
+    setTimeout(() => {
+      showView("view-verdict");
+    }, 1200);
+  }
+}
+
+function onSpeedSliderChange(val) {
+  simSpeedMs = parseInt(val);
+  document.getElementById("simSpeedLabel").innerText = (simSpeedMs / 1000).toFixed(1) + "s";
+}
+
+function onAutoPlayToggle() {
+  autoPlayEnabled = document.getElementById("autoPlayCheckbox").checked;
+}
+
+function updateSimulationUI() {
+  if (!activeSafetyResult) return;
+  const totalSteps = activeSafetyResult.steps.length;
+
+  // Reset all cards to waiting/finished depending on step index
+  for (let i = 0; i < scenario.n; i++) {
+    const card = document.getElementById(`schedCard-${i}`);
+    const badge = document.getElementById(`schedBadge-${i}`);
+    if (!card || !badge) continue;
+
+    card.className = "scheduler-proc-card";
+    badge.className = "proc-badge-tag badge-waiting";
+    badge.innerText = "WAITING";
+  }
+
+  // Initial State before step 0
+  if (simStepIndex === -1) {
+    document.getElementById("simStepHeaderTag").innerText = `Step: 0 / ${totalSteps}`;
+    updateResourceTanks(activeSafetyResult.initial_available);
+
+    document.getElementById("scannerBadge").innerText = "INITIALIZED";
+    document.getElementById("scannerBadge").className = "wizard-badge";
+    document.getElementById("scannerHeading").innerText = "Scheduler Initialized";
+    document.getElementById("scannerProcessIcon").innerText = "🖥️";
+    document.getElementById("scannerDesc").innerText = `Work vector initialized to Available: [${activeSafetyResult.initial_available.join(", ")}].`;
+    document.getElementById("scannerComparisons").innerHTML = "";
+    document.getElementById("scannerWorkVec").innerText = `Work: [${activeSafetyResult.initial_available.join(", ")}]`;
+    document.getElementById("scannerFinishVec").innerText = `Finish: [${new Array(scenario.n).fill("F").join(", ")}]`;
+    return;
+  }
+
+  // Active step
+  const step = activeSafetyResult.steps[simStepIndex];
+  document.getElementById("simStepHeaderTag").innerText = `Step: ${simStepIndex + 1} / ${totalSteps}`;
+  updateResourceTanks(step.work_after);
+
+  // Update overall progress bar
+  const pctComplete = Math.round(((simStepIndex + 1) / totalSteps) * 100);
+  document.getElementById("overallProgressBar").style.width = `${pctComplete}%`;
+  document.getElementById("overallProgressText").innerText = `${pctComplete}% (${simStepIndex + 1} / ${totalSteps} completed)`;
+
+  // Mark all finished processes up to this step
+  for (let s = 0; s <= simStepIndex; s++) {
+    const pIdx = activeSafetyResult.steps[s].process_index;
+    const card = document.getElementById(`schedCard-${pIdx}`);
+    const badge = document.getElementById(`schedBadge-${pIdx}`);
+    if (card && badge) {
+      if (s === simStepIndex) {
+        card.className = "scheduler-proc-card running";
+        badge.className = "proc-badge-tag badge-running";
+        badge.innerText = "EXECUTING";
+      } else {
+        card.className = "scheduler-proc-card finished";
+        badge.className = "proc-badge-tag badge-finished";
+        badge.innerText = "FINISHED";
+      }
+    }
+  }
+
+  // Scanner Display
+  const currentPIdx = step.process_index;
+  document.getElementById("scannerBadge").innerText = "SATISFIED";
+  document.getElementById("scannerBadge").className = "wizard-badge";
+  document.getElementById("scannerHeading").innerText = `Process: ${step.process_name} Executing`;
+  document.getElementById("scannerProcessIcon").innerText = scenario.process_icons[currentPIdx] || "⚡";
+  document.getElementById("scannerDesc").innerHTML = `
+    ✔ Need [${step.need.join(", ")}] ≤ Work [${step.work_before.join(", ")}]. Application completes and releases its allocation [${step.allocation.join(", ")}].
+  `;
+
+  // Comparisons row
+  let cmpHtml = "";
+  for (let j = 0; j < scenario.m; j++) {
+    const rName = scenario.resource_names[j];
+    const nVal = step.need[j];
+    const wVal = step.work_before[j];
+    const ok = nVal <= wVal;
+    cmpHtml += `
+      <div class="cmp-pill ${ok ? 'pass' : 'fail'}">
+        <span>${rName}: Need ${nVal} ≤ Work ${wVal}</span>
+        <span>${ok ? '✓' : '✗'}</span>
+      </div>
+    `;
+  }
+  document.getElementById("scannerComparisons").innerHTML = cmpHtml;
+  document.getElementById("scannerWorkVec").innerText = `Work: [${step.work_after.join(", ")}]`;
+  document.getElementById("scannerFinishVec").innerText = `Finish: [${step.finish_status.map(f => f ? 'T' : 'F').join(", ")}]`;
+
+  // Timeline track
+  let trackHtml = "";
+  for (let s = 0; s <= simStepIndex; s++) {
+    const st = activeSafetyResult.steps[s];
+    const icon = scenario.process_icons[st.process_index] || "⚡";
+    trackHtml += `
+      <div class="timeline-chip">
+        <span>${icon}</span>
+        <span>${st.process_name}</span>
+      </div>
+    `;
+    if (s < simStepIndex) {
+      trackHtml += `<span class="timeline-arrow">➔</span>`;
+    }
+  }
+  document.getElementById("timelineTrack").innerHTML = trackHtml;
+
+  // Terminal log: Log skipped processes first, then the selected process
+  if (step.skipped_processes && step.skipped_processes.length > 0) {
+    step.skipped_processes.forEach(sk => {
+      const shortDesc = Object.entries(sk.shortage).map(([rIdx, diff]) => `${diff} more ${scenario.resource_names[rIdx] || ('R' + rIdx)}`).join(", ");
+      addLogLine(`${sk.process_name} skipped: needs ${shortDesc} than available`, "warn");
+    });
+  }
+  addLogLine(`Checking ${step.process_name}: Need (${step.need.join(",")}) <= Work (${step.work_before.join(",")}) ✓`, "pass");
+  addLogLine(`${step.process_name} finished, released (${step.allocation.join(",")}), Work is now (${step.work_after.join(",")})`, "success");
+
+  // If unsafe and last step, highlight blocked processes
+  if (!activeSafetyResult.is_safe && simStepIndex === totalSteps - 1) {
+    activeSafetyResult.unfinished_indices.forEach(idx => {
+      const card = document.getElementById(`schedCard-${idx}`);
+      const badge = document.getElementById(`schedBadge-${idx}`);
+      if (card && badge) {
+        card.className = "scheduler-proc-card blocked";
+        badge.className = "proc-badge-tag badge-blocked";
+        badge.innerText = "BLOCKED";
+      }
+    });
+    addLogLine(`Deadlock Warning: Remaining processes [${activeSafetyResult.unfinished_processes.join(", ")}] cannot proceed. System is in an UNSAFE state.`, "fail");
+  }
+}
+
+function addLogLine(text, styleClass) {
+  const log = document.getElementById("simTerminalLog");
+  if (!log) return;
+  const time = new Date().toTimeString().split(" ")[0];
+  const line = document.createElement("div");
+  line.className = "log-line";
+  line.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${styleClass}">${text}</span>`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+/* =====================================================================
+   STAGE 4: CALCULATIONS VIEW
+   ===================================================================== */
+function renderCalculationsView() {
+  const need = getNeedMatrix();
+  const avail = getAvailableVector();
+
+  // 1. Substitute real example formulas
+  if (scenario.n > 0 && scenario.m > 0) {
+    const p0 = scenario.process_names[0];
+    const max0 = scenario.maximum[0];
+    const alc0 = scenario.allocation[0];
+    const nd0 = need[0];
+    document.getElementById("calcFormulaNeedEx").innerHTML = `
+      For ${p0}: Need = Max − Alloc = (${max0.join(",")}) − (${alc0.join(",")}) = <strong style="color:var(--cyan-bright);">(${nd0.join(",")})</strong>
+    `;
+    document.getElementById("calcFormulaAvailEx").innerHTML = `
+      Available = Total − ΣAlloc = (${scenario.total.join(",")}) − (${scenario.total.map((t, j) => t - avail[j]).join(",")}) = <strong style="color:var(--cyan-bright);">(${avail.join(",")})</strong>
+    `;
+  }
+
+  // 2. Render Raw Matrices Overview Table
+  const overviewBox = document.getElementById("calcMatricesOverview");
+  if (overviewBox) {
+    let tblHtml = `
+      <table class="review-table">
+        <tr>
+          <th style="text-align:left;">App Process</th>
+          <th>Allocated (Held)</th>
+          <th>Maximum Demand</th>
+          <th>Calculated Need</th>
+        </tr>
+    `;
+    for (let i = 0; i < scenario.n; i++) {
+      tblHtml += `
+        <tr>
+          <td class="proc-name-col">
+            <span style="margin-right:6px;">${scenario.process_icons[i]}</span>
+            <span>${scenario.process_names[i]}</span>
+          </td>
+          <td style="font-family:var(--font-mono);">[${scenario.allocation[i].join(", ")}]</td>
+          <td style="font-family:var(--font-mono);">[${scenario.maximum[i].join(", ")}]</td>
+          <td style="font-family:var(--font-mono);color:var(--cyan-bright);font-weight:700;">[${need[i].join(", ")}]</td>
+        </tr>
+      `;
+    }
+    tblHtml += `
+      <tr style="background:rgba(56,189,248,0.06);font-weight:bold;">
+        <td class="proc-name-col" style="color:var(--cyan-bright);">SYSTEM TOTALS</td>
+        <td style="font-family:var(--font-mono);color:var(--text-muted);">Allocated: [${scenario.resource_names.map((r, j) => scenario.total[j] - avail[j]).join(", ")}]</td>
+        <td style="font-family:var(--font-mono);color:#fff;">Physical Total: [${scenario.total.join(", ")}]</td>
+        <td style="font-family:var(--font-mono);color:var(--cyan-bright);">Initial Free: [${avail.join(", ")}]</td>
+      </tr>
+      </table>
+    `;
+    overviewBox.innerHTML = tblHtml;
+  }
+
+  // 3. Render Expandable Iteration Trace Deck
+  const deck = document.getElementById("calcTraceDeck");
+  if (!deck || !activeSafetyResult) return;
+  deck.innerHTML = "";
+
+  activeSafetyResult.steps.forEach(step => {
+    const item = document.createElement("div");
+    item.className = "trace-accordion-item";
+
+    // Format skipped checks list if available
+    let checksDetailHtml = "";
+    if (step.skipped_processes && step.skipped_processes.length > 0) {
+      checksDetailHtml += `<div style="margin-bottom:8px;color:var(--status-wait);font-size:12px;"><strong>Processes evaluated &amp; skipped in this iteration:</strong></div>`;
+      step.skipped_processes.forEach(sk => {
+        const shortDesc = Object.entries(sk.shortage).map(([rIdx, diff]) => `${diff} more ${scenario.resource_names[rIdx] || ('R' + rIdx)}`).join(", ");
+        checksDetailHtml += `
+          <div style="margin-left:12px;margin-bottom:4px;color:var(--text-dim);font-family:var(--font-mono);font-size:12px;">
+            • ${sk.process_name}: Need [${sk.need.join(",")}] > Work [${sk.work.join(",")}] (Shortage: ${shortDesc}) ✗
+          </div>
+        `;
+      });
+    }
+
+    item.innerHTML = `
+      <div class="trace-header">
+        <span>Step ${step.step_number}: Candidate Process ${step.process_name}</span>
+        <span style="color:var(--status-safe);font-weight:bold;">SATISFIED ✓</span>
+      </div>
+      <div class="trace-content">
+        ${checksDetailHtml}
+        <div style="margin-top:6px;">• <strong>Work Vector Before:</strong> [${step.work_before.join(", ")}]</div>
+        <div>• <strong>Need Vector:</strong> [${step.need.join(", ")}] (Condition Need ≤ Work satisfied across all resources)</div>
+        <div>• <strong>Allocation Returned to Pool:</strong> [${step.allocation.join(", ")}]</div>
+        <div>• <strong>Resulting Work Vector:</strong> <strong style="color:var(--cyan-bright);">[${step.work_after.join(", ")}]</strong></div>
+        <div>• <strong>Finish Vector Status:</strong> [${step.finish_status.map(f => f ? 'True' : 'False').join(", ")}]</div>
+      </div>
+    `;
+    deck.appendChild(item);
+  });
+}
+
+/* =====================================================================
+   STAGE 5: FINAL VERDICT VIEW
+   ===================================================================== */
+function renderVerdictView() {
+  if (!activeSafetyResult) return;
+  const hero = document.getElementById("verdictHeroCard");
+  const icon = document.getElementById("verdictHeroIcon");
+  const title = document.getElementById("verdictHeroTitle");
+  const desc = document.getElementById("verdictHeroDesc");
+  const stuckBox = document.getElementById("verdictStuckBox");
+  const seqBox = document.getElementById("verdictSequenceBox");
+
+  // Summary Stat Cards
+  const finishedEl = document.getElementById("verdictFinishedCount");
+  const stepsEl = document.getElementById("verdictStepsCount");
+  const workEl = document.getElementById("verdictFinalWork");
+
+  if (finishedEl) finishedEl.innerText = `${activeSafetyResult.safe_sequence.length} / ${scenario.n} Apps`;
+  if (stepsEl) stepsEl.innerText = `${activeSafetyResult.steps.length} Steps`;
+  if (workEl) workEl.innerText = `[${activeSafetyResult.final_work.join(", ")}]`;
+
+  if (activeSafetyResult.is_safe) {
+    hero.className = "verdict-hero safe";
+    icon.innerText = "🏆";
+    title.innerText = "SYSTEM IS IN A SAFE STATE";
+    desc.innerHTML = `
+      A verified safe sequence was found: no circular wait can materialize.<br>
+      Every process can obtain its maximum demand, terminate, and release all allocated resources.
+    `;
+
+    // Render celebratory chips in order
+    if (seqBox) {
+      let chipsHtml = "";
+      activeSafetyResult.safe_sequence.forEach((pName, sIdx) => {
+        const pOriginalIdx = scenario.process_names.indexOf(pName);
+        const icon = scenario.process_icons[pOriginalIdx] || "⚡";
+        chipsHtml += `
+          <div class="timeline-chip" style="font-size:14px;padding:10px 18px;">
+            <span>${icon}</span>
+            <span>${pName}</span>
+          </div>
+        `;
+        if (sIdx < activeSafetyResult.safe_sequence.length - 1) {
+          chipsHtml += `<span class="timeline-arrow" style="font-size:20px;">➔</span>`;
+        }
+      });
+      seqBox.innerHTML = chipsHtml;
+      seqBox.style.display = "flex";
+    }
+
+    stuckBox.style.display = "none";
+  } else {
+    hero.className = "verdict-hero unsafe";
+    icon.innerText = "⚠️";
+    title.innerText = "SYSTEM IS NOT IN A SAFE STATE";
+    desc.innerHTML = `
+      Deadlock Risk Detected! The operating system cannot find a complete safe sequence.<br>
+      Available work reached <strong>[${activeSafetyResult.final_work.join(", ")}]</strong>, but all remaining processes demand more resources than are free.
+    `;
+
+    if (seqBox) seqBox.style.display = "none";
+    stuckBox.style.display = "block";
+
+    let stuckHtml = `
+      <div style="font-weight:bold;color:#f87171;margin-bottom:8px;font-size:14px;">Blocked Application Processes &amp; Shortages:</div>
+    `;
+    if (activeSafetyResult.unfinished_details) {
+      activeSafetyResult.unfinished_details.forEach(det => {
+        stuckHtml += `
+          <div style="margin-bottom:8px;font-family:var(--font-mono);font-size:13px;padding:6px 10px;background:rgba(239,68,68,0.1);border-radius:4px;">
+            • <strong>${det.process_name}</strong> lacks: ${Object.entries(det.shortage).map(([r, s]) => `<span style="color:#f87171;font-weight:bold;">${s} more ${r}</span>`).join(", ")} (Need: [${det.need.join(",")}] vs Work: [${det.work.join(",")}])
+          </div>
+        `;
+      });
+    }
+    stuckHtml += `
+      <div style="margin-top:14px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:#fde68a;line-height:1.5;">
+        <strong>Deadlock Avoidance Distinction:</strong> An Unsafe State does NOT prove that a deadlock is currently happening. It means the OS cannot <em>guarantee</em> deadlock-free completion if all remaining applications simultaneously demand their maximum claims. Banker's Algorithm avoids unsafe states to prevent any possibility of deadlock.
+      </div>
+    `;
+    stuckBox.innerHTML = stuckHtml;
+  }
+}
+
+/* =====================================================================
+   STAGE 6: RESOURCE REQUEST SIMULATOR
+   ===================================================================== */
+function setupRequestSimulator() {
+  const sel = document.getElementById("reqProcSelect");
+  if (!sel) return;
+  sel.innerHTML = "";
+  for (let i = 0; i < scenario.n; i++) {
+    sel.innerHTML += `<option value="${i}">${scenario.process_names[i]}</option>`;
+  }
+
+  const deck = document.getElementById("reqVecInputsDeck");
+  if (!deck) return;
+  deck.innerHTML = "";
+  for (let j = 0; j < scenario.m; j++) {
+    deck.innerHTML += `
+      <div style="text-align:center;">
+        <span style="font-size:10px;font-weight:bold;color:var(--cyan-bright);display:block;margin-bottom:4px;">${scenario.resource_names[j]}</span>
+        <input type="number" id="reqInputVal-${j}" min="0" value="0" class="cell-num-input" style="width:50px;">
+      </div>
+    `;
+  }
+  onReqProcChange();
+}
+
+function onReqProcChange() {
+  const pIdx = parseInt(document.getElementById("reqProcSelect").value) || 0;
+  const need = getNeedMatrix();
+  if (need[pIdx]) {
+    document.getElementById("reqExplanationBlock").innerHTML = `
+      Process <strong>${scenario.process_names[pIdx]}</strong> has remaining Need: <strong>[${need[pIdx].join(", ")}]</strong>.<br>
+      Available physical resources in system: <strong>[${getAvailableVector().join(", ")}]</strong>.
+    `;
+  }
+}
+
+async function simulateActiveRequest() {
+  const pIdx = parseInt(document.getElementById("reqProcSelect").value) || 0;
+  const reqVec = [];
+  for (let j = 0; j < scenario.m; j++) {
+    const val = parseInt(document.getElementById(`reqInputVal-${j}`).value) || 0;
+    reqVec.push(val);
+  }
+
+  if (reqVec.every(v => v === 0)) {
+    alert("Please specify at least 1 resource unit to request.");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/simulate-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...scenario,
+        process_index: pIdx,
+        request_vector: reqVec
+      })
+    });
+    const data = await res.json();
+    lastRequestSimResult = data;
+
+    // Phase 1
+    const p1 = document.getElementById("reqPhase1");
+    const b1 = document.getElementById("reqPhaseBadge1");
+    if (data.rejection_stage === 1) {
+      p1.className = "phase-step-card fail";
+      b1.className = "wizard-badge";
+      b1.style.color = "var(--status-blocked)";
+      b1.innerText = "FAILED (EXCEEDS CLAIM)";
+    } else {
+      p1.className = "phase-step-card pass";
+      b1.className = "wizard-badge";
+      b1.style.color = "var(--status-safe)";
+      b1.innerText = "PASSED ✓";
+    }
+
+    // Phase 2
+    const p2 = document.getElementById("reqPhase2");
+    const b2 = document.getElementById("reqPhaseBadge2");
+    if (data.rejection_stage === 2) {
+      p2.className = "phase-step-card fail";
+      b2.className = "wizard-badge";
+      b2.style.color = "var(--status-blocked)";
+      b2.innerText = "FAILED (INSUFFICIENT)";
+    } else if (data.rejection_stage === 1) {
+      p2.className = "phase-step-card";
+      b2.innerText = "SKIPPED";
+    } else {
+      p2.className = "phase-step-card pass";
+      b2.className = "wizard-badge";
+      b2.style.color = "var(--status-safe)";
+      b2.innerText = "PASSED ✓";
+    }
+
+    // Phase 3
+    const p3 = document.getElementById("reqPhase3");
+    const b3 = document.getElementById("reqPhaseBadge3");
+    if (data.rejection_stage === 3) {
+      p3.className = "phase-step-card fail";
+      b3.className = "wizard-badge";
+      b3.style.color = "var(--status-blocked)";
+      b3.innerText = "FAILED (UNSAFE STATE)";
+    } else if (data.is_granted) {
+      p3.className = "phase-step-card pass";
+      b3.className = "wizard-badge";
+      b3.style.color = "var(--status-safe)";
+      b3.innerText = "PASSED (SAFE) ✓";
+    } else {
+      p3.className = "phase-step-card";
+      b3.innerText = "SKIPPED";
+    }
+
+    document.getElementById("btnApplyApprovedReq").style.display = data.is_granted ? "inline-flex" : "none";
+    document.getElementById("reqExplanationBlock").innerHTML = `
+      <strong>Verdict:</strong> ${data.explanation}<br>
+      ${data.is_granted ? 'You may click "Apply to Scenario" above to commit these resources.' : 'All tentative changes have been rolled back to prevent entering an unsafe state.'}
+    `;
+  } catch (err) {
+    console.error("Request sim error:", err);
+  }
+}
+
+function applyApprovedRequest() {
+  if (lastRequestSimResult && lastRequestSimResult.is_granted) {
+    scenario.allocation = JSON.parse(JSON.stringify(lastRequestSimResult.tentative_allocation));
+    renderAllWizardScreens();
+    fetchSafetyCalculation(true);
+    alert(`Request allocated successfully to ${lastRequestSimResult.process_name}!`);
+    showView("view-sim");
+    initSchedulerBoard();
+    simRestart();
+  }
+}
+
+/* =====================================================================
+   PRESETS & EXPORTS
+   ===================================================================== */
+async function loadExampleSafe() {
+  try {
+    const res = await fetch("/api/preset/safe");
+    scenario = await res.json();
+    renderAllWizardScreens();
+    await fetchSafetyCalculation(true);
+    showView("view-wizard");
+    goToWizardStep(5);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function loadExampleUnsafe() {
+  try {
+    const res = await fetch("/api/preset/unsafe");
+    scenario = await res.json();
+    renderAllWizardScreens();
+    await fetchSafetyCalculation(true);
+    showView("view-wizard");
+    goToWizardStep(5);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function loadExampleRandom() {
+  try {
+    const res = await fetch(`/api/preset/random?n=${scenario.n}&m=${scenario.m}`);
+    const data = await res.json();
+    scenario = data;
+    // assign random icons
+    scenario.process_icons = [];
+    scenario.process_colors = [];
+    for (let i = 0; i < scenario.n; i++) {
+      const cat = APP_CATALOG[i % APP_CATALOG.length];
+      scenario.process_icons.push(cat.icon);
+      scenario.process_colors.push(cat.color);
+    }
+    renderAllWizardScreens();
+    await fetchSafetyCalculation(true);
+    showView("view-wizard");
+    goToWizardStep(5);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function resetToInitialPrompt() {
+  if (confirm("Reset setup wizard to default 5-process scenario?")) {
+    loadExampleSafe();
+    goToWizardStep(1);
+  }
+}
+
+function exportScenarioJSON() {
+  const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(scenario, null, 2));
+  const a = document.createElement("a");
+  a.href = str;
+  a.download = "bankers_scenario.json";
+  a.click();
+}
+
+function triggerJSONUpload() {
+  document.getElementById("jsonFileInput").click();
+}
+
+function handleJSONUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      scenario = data;
+      renderAllWizardScreens();
+      fetchSafetyCalculation(true);
+      alert("Scenario loaded successfully from JSON!");
+    } catch (err) {
+      alert("Error parsing JSON file.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function exportCSVReport() {
+  const avail = getAvailableVector();
+  const need = getNeedMatrix();
+  let csv = "BANKER'S ALGORITHM AUDIT REPORT\n";
+  csv += `Processes,${scenario.n}\nResource Types,${scenario.m}\n\n`;
+  csv += "SYSTEM RESOURCES\nVector," + scenario.resource_names.join(",") + "\n";
+  csv += "Total," + scenario.total.join(",") + "\n";
+  csv += "Available," + avail.join(",") + "\n\n";
+
+  csv += "ALLOCATION MATRIX\nProcess," + scenario.resource_names.join(",") + "\n";
+  for (let i = 0; i < scenario.n; i++) csv += `${scenario.process_names[i]},` + scenario.allocation[i].join(",") + "\n";
+
+  csv += "\nMAXIMUM DEMAND\nProcess," + scenario.resource_names.join(",") + "\n";
+  for (let i = 0; i < scenario.n; i++) csv += `${scenario.process_names[i]},` + scenario.maximum[i].join(",") + "\n";
+
+  csv += "\nNEED MATRIX\nProcess," + scenario.resource_names.join(",") + "\n";
+  for (let i = 0; i < scenario.n; i++) csv += `${scenario.process_names[i]},` + need[i].join(",") + "\n";
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "bankers_audit.csv";
+  a.click();
+}
+
+function exportTextReport() {
+  const avail = getAvailableVector();
+  const need = getNeedMatrix();
+  let txt = "========================================================================\n";
+  txt += "   BANKER'S ALGORITHM SIMULATOR — MISSION CONTROL REPORT\n";
+  txt += "========================================================================\n\n";
+  txt += `Processes: ${scenario.n} | Resource Types: ${scenario.m}\n\n`;
+  txt += "Resources:\n";
+  txt += "  Names:     " + scenario.resource_names.map(r => r.padStart(7)).join("") + "\n";
+  txt += "  Total:     " + scenario.total.map(t => String(t).padStart(7)).join("") + "\n";
+  txt += "  Available: " + avail.map(a => String(a).padStart(7)).join("") + "\n\n";
+
+  for (let i = 0; i < scenario.n; i++) {
+    txt += `  ${scenario.process_names[i].padEnd(12)} | Alloc: [${scenario.allocation[i].join(",")}] | Max: [${scenario.maximum[i].join(",")}] | Need: [${need[i].join(",")}]\n`;
+  }
+
+  if (activeSafetyResult) {
+    txt += "\n" + "=".repeat(72) + "\n";
+    txt += `VERDICT: ${activeSafetyResult.summary_title}\n`;
+    txt += "=".repeat(72) + "\n";
+    txt += activeSafetyResult.summary_message + "\n\n";
+    if (activeSafetyResult.is_safe) {
+      txt += "Safe Execution Sequence: < " + activeSafetyResult.safe_sequence.join(" → ") + " >\n";
+    }
+  }
+
+  const blob = new Blob([txt], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "bankers_report.txt";
+  a.click();
+}
+</script>
+</body>
+</html>
